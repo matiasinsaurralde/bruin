@@ -128,7 +128,7 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: latest
-          args: --timeout=10m60s --build-tags="no_duckdb_arrow" ./...
+          args: --timeout=10m60s ./...
 
   goreleaser-windows:
     runs-on: windows-2022
