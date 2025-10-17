@@ -898,9 +898,10 @@ func (m *scheduledQueryModel) View() string {
 	leftBorderColor := colorGray
 	rightBorderColor := colorGray
 
-	if m.focusedPane == 0 {
+	switch m.focusedPane {
+	case 0:
 		leftBorderColor = colorBlue
-	} else if m.focusedPane == 1 {
+	case 1:
 		rightBorderColor = colorOrange
 	}
 
@@ -1869,9 +1870,10 @@ func (m *tableauDashboardModel) View() string {
 	leftBorderColor := colorGray
 	rightBorderColor := colorGray
 
-	if m.focusedPane == 0 {
+	switch m.focusedPane {
+	case 0:
 		leftBorderColor = colorBlue
-	} else if m.focusedPane == 1 {
+	case 1:
 		rightBorderColor = colorOrange
 	}
 

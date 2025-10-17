@@ -67,7 +67,7 @@ func (s *Task) Run() error {
 }
 
 func (s *Task) runAttempt() error {
-	cmd := exec.Command(s.Command, s.Args...) //nolint:gosec
+	cmd := exec.Command(s.Command, s.Args...) //nolint:gosec,noctx
 	cmd.Env = append(os.Environ(), s.Env...)
 	if s.WorkingDir != "" {
 		cmd.Dir = s.WorkingDir

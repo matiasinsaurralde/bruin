@@ -283,7 +283,7 @@ func Init() *cli.Command {
 				}
 
 				// Initialize git repository in the target directory
-				cmd := exec.Command("git", "init")
+				cmd := exec.CommandContext(ctx, "git", "init")
 				cmd.Dir = targetDir
 				out, err := cmd.CombinedOutput()
 				if err != nil {

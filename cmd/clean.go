@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/bruin-data/bruin/pkg/constants"
 	"github.com/bruin-data/bruin/pkg/git"
 	"github.com/bruin-data/bruin/pkg/telemetry"
 	"github.com/bruin-data/bruin/pkg/user"
@@ -42,7 +43,7 @@ func CleanCmd() *cli.Command {
 				errorPrinter: errorPrinter,
 			}
 
-			return r.Run(inputPath, c.Bool("uv-cache"))
+			return r.Run(ctx, inputPath, c.Bool("uv-cache"))
 		},
 		Before: telemetry.BeforeCommand,
 		After:  telemetry.AfterCommand,
@@ -54,7 +55,7 @@ type CleanCommand struct {
 	errorPrinter printer
 }
 
-func (r *CleanCommand) Run(inputPath string, cleanUvCache bool) error {
+func (r *CleanCommand) Run(ctx context.Context, inputPath string, cleanUvCache bool) error {
 	cm := user.NewConfigManager(afero.NewOsFs())
 	bruinHomeDirAbsPath, err := cm.EnsureAndGetBruinHomeDir()
 	if err != nil {
@@ -63,7 +64,7 @@ func (r *CleanCommand) Run(inputPath string, cleanUvCache bool) error {
 
 	// Clean uv caches if requested
 	if cleanUvCache {
-		if err := r.cleanUvCache(bruinHomeDirAbsPath); err != nil {
+		if err := r.cleanUvCache(ctx, bruinHomeDirAbsPath); err != nil {
 			return err
 		}
 	}
@@ -105,10 +106,10 @@ func (r *CleanCommand) Run(inputPath string, cleanUvCache bool) error {
 	return nil
 }
 
-func (r *CleanCommand) cleanUvCache(bruinHomeDirAbsPath string) error {
+func (r *CleanCommand) cleanUvCache(ctx context.Context, bruinHomeDirAbsPath string) error {
 	var binaryName string
 	//nolint:goconst
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == constants.Windows {
 		binaryName = "uv.exe"
 	} else {
 		binaryName = "uv"
@@ -122,7 +123,7 @@ func (r *CleanCommand) cleanUvCache(bruinHomeDirAbsPath string) error {
 	}
 
 	// Check if uv is available and working
-	cmd := exec.Command(uvBinaryPath, "version")
+	cmd := exec.CommandContext(ctx, uvBinaryPath, "version")
 	if err := cmd.Run(); err != nil {
 		return errors.Wrap(err, "uv binary exists but is not working properly")
 	}
@@ -135,7 +136,7 @@ func (r *CleanCommand) cleanUvCache(bruinHomeDirAbsPath string) error {
 
 	infoPrinter.Println("Cleaning uv caches...")
 
-	cleanCmd := exec.Command(uvBinaryPath, "cache", "clean")
+	cleanCmd := exec.CommandContext(ctx, uvBinaryPath, "cache", "clean")
 	output, err := cleanCmd.CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "failed to clean uv cache: %s", string(output))

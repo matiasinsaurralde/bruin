@@ -35,9 +35,10 @@ func (r *DryRunner) DryRun(ctx context.Context, p pipeline.Pipeline, a pipeline.
 	var queryString string
 	var err error
 
-	if a.Type == pipeline.AssetTypeBigqueryQuery {
+	switch a.Type { //nolint:exhaustive
+	case pipeline.AssetTypeBigqueryQuery:
 		queryString = a.ExecutableFile.Content
-	} else if a.Type == pipeline.AssetTypeBigqueryQuerySensor {
+	case pipeline.AssetTypeBigqueryQuerySensor:
 		queryParam, ok := a.Parameters["query"]
 		if !ok {
 			return nil, errors.New("query sensor requires a parameter named 'query'")

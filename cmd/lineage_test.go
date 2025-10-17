@@ -30,7 +30,7 @@ func (m *mockPrinter) Println(a ...interface{}) (int, error) {
 func (m *mockPrinter) Printf(format string, a ...interface{}) (int, error) {
 	m.m.Lock()
 	defer m.m.Unlock()
-	return m.buf.Write([]byte(fmt.Sprintf(format, a...)))
+	return fmt.Fprintf(m.buf, format, a...)
 }
 
 func (m *mockPrinter) Print(a ...interface{}) (int, error) {

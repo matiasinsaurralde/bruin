@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"runtime"
 
+	"github.com/bruin-data/bruin/pkg/constants"
 	"github.com/bruin-data/bruin/pkg/telemetry"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v3"
@@ -24,7 +25,7 @@ func Update() *cli.Command {
 			infoPrinter.Printf("Current Bruin version: %s\n", currentVersion)
 
 			// Check if we're on Windows and warn about using the right terminal
-			if runtime.GOOS == "windows" {
+			if runtime.GOOS == constants.Windows {
 				infoPrinter.Println("Note: If you're on Windows, make sure to run this command in Git Bash or WSL terminal.")
 			}
 
@@ -35,15 +36,15 @@ func Update() *cli.Command {
 			var cmd *exec.Cmd
 			switch {
 			case isCommandAvailable("curl"):
-				cmd = exec.Command("curl", "-LsSf", "https://getbruin.com/install/cli")
+				cmd = exec.CommandContext(ctx, "curl", "-LsSf", "https://getbruin.com/install/cli")
 			case isCommandAvailable("wget"):
-				cmd = exec.Command("wget", "-qO-", "https://getbruin.com/install/cli")
+				cmd = exec.CommandContext(ctx, "wget", "-qO-", "https://getbruin.com/install/cli")
 			default:
 				return errors.New("neither curl nor wget is available - please install one of them to update Bruin")
 			}
 
 			// Create a pipe to sh
-			shCmd := exec.Command("sh")
+			shCmd := exec.CommandContext(ctx, "sh")
 
 			// Connect the download command output to sh input
 			downloadStdout, err := cmd.StdoutPipe()

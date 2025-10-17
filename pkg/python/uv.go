@@ -17,6 +17,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/bruin-data/bruin/pkg/config"
+	"github.com/bruin-data/bruin/pkg/constants"
 	duck "github.com/bruin-data/bruin/pkg/duckdb"
 	"github.com/bruin-data/bruin/pkg/executor"
 	"github.com/bruin-data/bruin/pkg/git"
@@ -74,7 +75,7 @@ func (u *UvChecker) EnsureUvInstalled(ctx context.Context) (string, error) {
 		return "", errors.Wrap(err, "failed to get bruin home directory")
 	}
 	var binaryName string
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == constants.Windows {
 		binaryName = "uv.exe"
 	} else {
 		binaryName = "uv"
@@ -88,7 +89,7 @@ func (u *UvChecker) EnsureUvInstalled(ctx context.Context) (string, error) {
 		return uvBinaryPath, nil
 	}
 
-	cmd := exec.Command(uvBinaryPath, "version", "--no-config", "--output-format", "json")
+	cmd := exec.Command(uvBinaryPath, "version", "--no-config", "--output-format", "json") //nolint:noctx
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("failed to check uv version: %w -- Output: %s", err, output)
@@ -121,12 +122,12 @@ func (u *UvChecker) installUvCommand(ctx context.Context, dest string) error {
 	}
 
 	_, _ = output.Write([]byte("===============================\n"))
-	_, _ = output.Write([]byte(fmt.Sprintf("Installing uv v%s...\n", UvVersion)))
+	_, _ = fmt.Fprintf(output, "Installing uv v%s...\n", UvVersion)
 	_, _ = output.Write([]byte("This is a one-time operation.\n"))
 	_, _ = output.Write([]byte("\n"))
 
 	var commandInstance *exec.Cmd
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == constants.Windows {
 		// this conditional part is to test the powershell stuff safely.
 		// once we confirm this on different systems we should remove winget altogether.
 		useWinget := false
@@ -135,12 +136,12 @@ func (u *UvChecker) installUvCommand(ctx context.Context, dest string) error {
 		}
 
 		if useWinget {
-			commandInstance = exec.Command(Shell, ShellSubcommandFlag, fmt.Sprintf("winget install --accept-package-agreements --accept-source-agreements --silent --id=astral-sh.uv --version %s --location %s -e", UvVersion, dest)) //nolint:gosec
+			commandInstance = exec.Command(Shell, ShellSubcommandFlag, fmt.Sprintf("winget install --accept-package-agreements --accept-source-agreements --silent --id=astral-sh.uv --version %s --location %s -e", UvVersion, dest)) //nolint:gosec,noctx
 		} else {
-			commandInstance = exec.Command("powershell", "-ExecutionPolicy", "ByPass", "-c", fmt.Sprintf("$env:NO_MODIFY_PATH=1 ; $env:UV_INSTALL_DIR='~/.bruin' ; irm https://astral.sh/uv/%s/install.ps1 | iex", UvVersion)) //nolint:gosec
+			commandInstance = exec.Command("powershell", "-ExecutionPolicy", "ByPass", "-c", fmt.Sprintf("$env:NO_MODIFY_PATH=1 ; $env:UV_INSTALL_DIR='~/.bruin' ; irm https://astral.sh/uv/%s/install.ps1 | iex", UvVersion)) //nolint:gosec,noctx
 		}
 	} else {
-		commandInstance = exec.Command(Shell, ShellSubcommandFlag, fmt.Sprintf("set -e; curl -LsSf https://astral.sh/uv/%s/install.sh | UV_INSTALL_DIR=\"%s\" NO_MODIFY_PATH=1 sh", UvVersion, dest)) //nolint:gosec
+		commandInstance = exec.Command(Shell, ShellSubcommandFlag, fmt.Sprintf("set -e; curl -LsSf https://astral.sh/uv/%s/install.sh | UV_INSTALL_DIR=\"%s\" NO_MODIFY_PATH=1 sh", UvVersion, dest)) //nolint:gosec,noctx
 	}
 
 	err := u.cmd.RunAnyCommand(ctx, commandInstance)
@@ -149,7 +150,7 @@ func (u *UvChecker) installUvCommand(ctx context.Context, dest string) error {
 	}
 
 	_, _ = output.Write([]byte("\n"))
-	_, _ = output.Write([]byte(fmt.Sprintf("Installed uv v%s, continuing...\n", UvVersion)))
+	_, _ = fmt.Fprintf(output, "Installed uv v%s, continuing...\n", UvVersion)
 	_, _ = output.Write([]byte("===============================\n"))
 	_, _ = output.Write([]byte("\n"))
 

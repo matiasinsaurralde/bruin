@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -61,7 +62,7 @@ func getAvailablePlatforms(configPath string) (map[string]bool, error) {
 }
 
 func runTestsInDirectory(t *testing.T, dir string, platformName string) {
-	cmd := exec.Command("go", "test", "-v", "./...")
+	cmd := exec.CommandContext(context.Background(), "go", "test", "-v", "./...")
 	cmd.Dir = dir
 	cmd.Env = os.Environ()
 

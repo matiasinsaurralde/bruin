@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/bruin-data/bruin/pkg/constants"
 )
 
 var (
@@ -57,7 +59,7 @@ func FindRepoFromPath(path string) (*Repo, error) {
 		return nil, err
 	}
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == constants.Windows {
 		d = strings.Replace(d, "/", "\\", -1)
 	}
 
@@ -108,7 +110,7 @@ func rootPath(inputPath string) (string, error) {
 	}
 	cleanPath := strings.TrimSpace(string(res))
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == constants.Windows {
 		cleanPath = strings.Replace(cleanPath, "/", "\\", -1)
 	}
 

@@ -1283,7 +1283,7 @@ func uniqueAssets(assets []*Asset) []*Asset {
 
 type EmptyStringMap map[string]string
 
-func (m EmptyStringMap) MarshalJSON() ([]byte, error) { //nolint: stylecheck
+func (m EmptyStringMap) MarshalJSON() ([]byte, error) { //nolint:revive
 	if m == nil {
 		return []byte{'{', '}'}, nil
 	}
@@ -1506,12 +1506,13 @@ func (p *Pipeline) GetConnectionNameForAsset(asset *Asset) (string, error) {
 
 	assetType := asset.Type
 	var ok bool
-	if assetType == AssetTypeIngestr {
+	switch assetType { //nolint:exhaustive
+	case AssetTypeIngestr:
 		assetType, ok = IngestrTypeConnectionMapping[asset.Parameters["destination"]]
 		if !ok {
 			return "", errors.Errorf("connection type could not be inferred for destination '%s', please specify a `connection` key in the asset", asset.Parameters["destination"])
 		}
-	} else if assetType == AssetTypePython || assetType == AssetTypeEmpty {
+	case AssetTypePython, AssetTypeEmpty:
 		assetType = p.GetMajorityAssetTypesFromSQLAssets(AssetTypeBigqueryQuery)
 	}
 
