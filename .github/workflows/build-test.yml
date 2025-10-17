@@ -124,9 +124,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23.2'
-      - run: make tools
       - name: Run golangci-lint
-        run: golangci-lint run --timeout 10m60s ./...
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          args: --timeout=10m60s --build-tags="no_duckdb_arrow" ./...
 
   goreleaser-windows:
     runs-on: windows-2022
