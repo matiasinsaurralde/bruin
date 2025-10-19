@@ -38,7 +38,53 @@ env:
   IMAGE_NAME: bruin-data/bruin
 
 jobs:
+  # Build job - runs once and caches artifacts
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # Cache Go modules for faster builds
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
+      # Cache build artifacts
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: bin/
+          key: ${{ runner.os }}-build-${{ hashFiles('**/*.go') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+      
+      - name: Setup Go 
+        uses: antontroshin/setup-go@windows-go-mod-cache
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: "go.sum"
+      
+      - name: Build application
+        run: make build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bruin-binary-${{ runner.os }}
+          path: bin/
+          retention-days: 1
+
+  # Unit tests - optimized with caching and reduced timeouts
   test:
+    needs: build
     strategy:
       matrix:
         platform: [ ubuntu-latest ]
@@ -47,16 +93,37 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-# TODO: Replace with actions/setup-go once issue is resolved https://github.com/actions/setup-go/pull/515
+      
+      # Cache Go modules
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
       - name: Setup Go 
         uses: antontroshin/setup-go@windows-go-mod-cache
         with:
           go-version-file: 'go.mod'
           cache-dependency-path: "go.sum"
-      - run: make test
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bruin-binary-${{ runner.os }}
+          path: bin/
+      
+      # Optimized test execution with reduced timeout and parallel execution
+      - name: Run unit tests
+        run: make test-ci
 
-
-  end2end:
+  # Light integration tests - faster execution
+  end2end-light:
+    needs: build
     strategy:
       matrix:
         platform: [ ubuntu-latest, windows-2022 ]
@@ -65,16 +132,77 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-# TODO: Replace with actions/setup-go once issue is resolved https://github.com/actions/setup-go/pull/515
+      
+      # Cache Go modules
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
       - name: Setup Go 
         uses: antontroshin/setup-go@windows-go-mod-cache
         with:
           go-version-file: 'go.mod'
           cache-dependency-path: "go.sum"
+      
       - name: Install winget
         if: matrix.platform == 'windows-2022'
         uses: Cyberboss/install-winget@v1
-      - run: make integration-test
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bruin-binary-${{ runner.os }}
+          path: bin/
+      
+      # Use light integration tests for faster execution
+      - name: Run light integration tests
+        run: make integration-test-light
+        shell: bash
+
+  # Full integration tests - only on ubuntu for comprehensive testing
+  end2end-full:
+    needs: build
+    strategy:
+      matrix:
+        platform: [ ubuntu-latest ]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # Cache Go modules
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
+      - name: Setup Go 
+        uses: antontroshin/setup-go@windows-go-mod-cache
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: "go.sum"
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bruin-binary-${{ runner.os }}
+          path: bin/
+      
+      # Full integration tests with ingestr
+      - name: Run full integration tests
+        run: make integration-test
         shell: bash
 
   dockerBuild:
@@ -100,6 +228,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:buildx-stable-1
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
